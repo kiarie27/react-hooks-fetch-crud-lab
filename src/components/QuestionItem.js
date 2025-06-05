@@ -1,13 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 
-function QuestionItem({ question }) {
-  const { id, prompt, answers, correctIndex } = question;
+function QuestionItem({ question, onUpdateQuestion, onDeleteQuestion }) {
+  const { id, prompt, answers } = question;
+  const [localCorrectIndex, setLocalCorrectIndex] = useState(question.correctIndex);
 
-  const options = answers.map((answer, index) => (
-    <option key={index} value={index}>
-      {answer}
-    </option>
-  ));
+  function handleDelete() {
+    fetch(`http://localhost:4000/questions/${id}`, {
+      method: "DELETE",
+    }).then(() => onDeleteQuestion(id));
+  }
+
+  function handleChange(e) {
+    const newCorrectIndex = parseInt(e.target.value);
+    setLocalCorrectIndex(newCorrectIndex); // <-- Immediately update local state
+
+    fetch(`http://localhost:4000/questions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correctIndex: newCorrectIndex }),
+    })
+      .then((r) => r.json())
+      .then(onUpdateQuestion);
+  }
 
   return (
     <li>
@@ -15,9 +29,19 @@ function QuestionItem({ question }) {
       <h5>Prompt: {prompt}</h5>
       <label>
         Correct Answer:
-        <select defaultValue={correctIndex}>{options}</select>
+        <select
+          aria-label="Correct Answer"
+          value={localCorrectIndex}
+          onChange={handleChange}
+        >
+          {answers.map((ans, idx) => (
+            <option key={idx} value={idx}>
+              {ans}
+            </option>
+          ))}
+        </select>
       </label>
-      <button>Delete Question</button>
+      <button onClick={handleDelete}>Delete Question</button>
     </li>
   );
 }
